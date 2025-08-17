@@ -161,6 +161,7 @@ class Deposito(Transacao):
             conta.historico.adicionar_transacao(self)
 
 def menu():
+
     menu = """\n
     =====================MENU=====================
     [1]\tDepositar
@@ -173,98 +174,145 @@ def menu():
     => """
     return input(menu)
 
+def depositar(clientes):
+    cpf = input("Informe o CPF do cliente: ")
+    cliente = filtrar_cliente(cpf, clientes)
 
+    if not cliente:
+        print("\n@@@ Cliente não encontrado! @@@")
+        return
 
+    valor = float(input("Informe o valor do depósito: "))
+    transacao = Deposito(valor)
 
+    conta = recuperar_conta_cliente(cliente)
+    if not conta:
+        return
+
+    cliente.realizar_transacao(conta, transacao)
+
+def sacar(clientes:)
+    cpf = input("Informe o CPF do cliente: ")
+    cliente = filtrar_cliente(cpf, clientes)
+
+    if not cliente:
+        print("\n@@@ Cliente não encontrado! @@@")
+        return
+
+    valor = float(input("Informe o valor do saque: "))
+    transacao = Saque(valor)
+
+    conta = recuperar_conta_cliente(cliente)
+    if not conta:
+        return
+
+    cliente.realizar_transacao(conta, transacao)
 
 def exibir_extrato(saldo, /, *, extrato):
+    cpf = input("Informe o CPF do cliente:")
+    cliente = filtrar_cliente(cpf, clientes)
+
+    if not cliente:
+        print("\n@@@ Cliente não encontrado! @@@")
+        return
+
+    conta = recuperar_conta_cliente(cliente)
+    if not conta:
+        return
+
     print("\n====================EXTRATO====================")
-    print("Não foram realizadas movimentações." if not extrato else extrato)
-    print(f"\nSaldo: R$ {saldo:.2f}")
+    transacoes = conta.historico.transacoes
+    
+    extrato = ""
+    if not transacoes:
+        extrato = "Não foram realizadas movimentações."
+    else:
+        for transacao in transacoes:
+            extrato += f"\n{transacao["tipo"]}:\n\tR${transacao["tipo"]:.}"
+
+    print(extrato)
+    print(f"\nSaldo:\n\tR$ {conta.saldo:.2f}")
     print("=================================================")
 
-def criar_usuario(usuarios):
+def criar_cliente(clientes):
     cpf = input("Informe o CPF (somente números): ")
-    usuario = filtrar_usuarios(cpf, usuarios)
+    cliente = filtrar_cçoemte(cpf, clientes)
 
-    if usuario:
-        print("\n\n@@@ Já existe usuário com esse CPF! @@@")
+    if cliente:
+        print("\n\n@@@ Já existe cliente com esse CPF! @@@")
         return
 
     nome = input("Informe o nome completo: ")
     data_nascimento = input("Informe a data de nascimento (dd-mm-aa): ")
     endereco = input("Informe o endereço (logradouro, nro - bairro - cidade/sigla estado): ")
 
-    usuarios.append({"nome": nome, "data_nascimento": data_nascimento, "cpf": cpf, "endereco": endereco})
+    cliente = PessoaFisica(nome=nome, data_nascimento=data_nascimento, cpf=cpf, endereco=endereco)
+    
+    clientes.append(cliente)
 
-    print("=== Usuário criado com sucesso! ===")
+    print("=== Cliente criado com sucesso! ===")
 
-def filtrar_usuarios(cpf, usuarios):
-    usuarios_filtrados = [usuario for usuario in usuarios if usuario["cpf"] == cpf]
-    return usuarios_filtrados[0] if usuarios_filtrados else None
+def filtrar_cliente(cpf, clientes):
+    clientes_filtrado = [cliente for cliente in clientes if cliente.cpf == cpf]
+    return clientes_filtrado[0] if clientes_filtrado else None
+
+def recuperar_conta_cliente(cliente):
+    if not cliente.contas:
+        print("\n@@@ Cliente não possui conta! @@@")
+        return
+
+    # FIXME: não permite cliente escolher a conta
+    return cliente.contas[0]
 
 def criar_conta(agencia, numero_conta, usuarios):
-    cpf = input("Informe o CPF do usuário: ")
-    usuario = filtrar_usuarios(cpf, usuarios)
+    cpf = input("Informe o CPF do cliente: ")
+    cliente = filtrar_cliente(cpf, clientes)
 
-    if usuario:
-        print("\n=== Conta criada com sucesso! ===")
-        return {"agencia": agencia, "numero_conta": numero_conta, "usuario": usuario}
+    if not cliente:
+        print("\n@@@ Cliente não encontrado, fluxo de criação de conta encerrada! @@@")
+        return
+    
+    conta = ContaCorrente.nova_conta(cliente=cliente, numero=numero_conta)
+    contas.append(conta)
+    cliente.contas.append(conta)
 
-    print("\n@@@ Usuário não encontrado, fluxo de criação de conta encerrada! @@@")
+    print("\n=== Conta criada com sucesso! ===")
 
 def listar_contas(contas):
     for conta in contas:
-        linha = f"""\
-         Agência: \t{conta["agencia"]}
-         C/C: \t{conta["numero_conta"]}
-         Titular: \t{conta["usuario"]["nome"]}
-    """
-    print("=" * 100)    
-    print((linha))
+        print("=" * 100)
+        print(dedent(str(conta)))
 
 def main(): 
     clientes = []
     contas = []
 
     while True:
-
         opcao = menu()
 
         if opcao =="1":
-            valor = float(input("Informe o valor do depósito: "))
-
-            saldo, extrato = depositar(saldo, valor, extrato)
+            depositar(clientes)
 
         elif opcao =="2":
-            valor = float(input("Informe o valor do saque: "))
-
-            saldo, extrato = sacar(
-                saldo=saldo,
-                valor=valor,
-                extrato=extrato,
-                limite=limite,
-                numero_saques=numero_saques,
-                limite_saques=LIMITE_SAQUES,
-            )         
+            sacar(clientes)    
 
         elif opcao =="3":
-            exibir_extrato(saldo, extrato=extrato)
+            exibir_extrato(clientes)
 
         elif opcao=="4":
-            criar_usuario(usuarios)
+            cliente(clientes)
         
         elif opcao=="5":
             numero_conta = len(contas) + 1
-            conta = criar_conta(AGENCIA, numero_conta, usuarios)
-
-            if conta:
-                contas.append(conta)
+            criar_conta(numero_conta, clientes, contas)
 
         elif opcao=="6":
             listar_contas(contas)
 
         elif opcao=="7":
             break
+
+        else:
+            print("\n@@@ Operação inválida, por favor seleciona novamente a operação desejada. @@@")
 
 main()
